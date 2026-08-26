@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Paints and Brushes Canvas</title>
+  <style>
+    :root {
+      --bg-pink: #fbcfe8;
+      --bg-pink-dark: #f472b6;
+      --window-bg: #e2e8f0;
+      --border-dark: #0f172a;
+      --panel-bg: #ffffff;
+      --bevel-light: #ffffff;
+      --bevel-dark: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      min-height: 100vh;
+      background-color: var(--bg-pink);
+      background-image: radial-gradient(var(--bg-pink-dark) 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: "Courier New", Courier, monospace;
+      color: #0f172a;
+    }
+
+    .app-window {
+      background: var(--window-bg);
+      border: 3px solid var(--border-dark);
+      box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      max-width: 100%;
+      width: 1140px;
+    }
+
+    .window-titlebar {
+      background: var(--border-dark);
+      color: #fff;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .titlebar-dots {
+      display: flex;
+      gap: 5px;
+    }
+    .titlebar-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ec4899;
+      border: 1px solid #000;
+    }
+
+    .app-workspace {
+      display: grid;
+      grid-template-columns: 100px 1fr 240px;
+      gap: 10px;
+      padding: 10px;
+      background: #f1f5f9;
+    }
+
+    /* Tools Sidebar */
+    .sidebar-tools {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .tool-group-label {
+      font-size: 8px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-top: 4px;
+      padding-left: 2px;
+    }
+
+    .tool-btn {
+      height: 42px;
+      background: #e2e8f0;
+      border: 2px solid var(--border-dark);
+      border-top-color: var(--bevel-light);
+      border-left-color: var(--bevel-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: bold;
+      gap: 1px;
+      transition: background 0.05s;
+    }
+
+    .tool-btn:active, .tool-btn.active {
+      border: 2px solid var(--border-dark);
+      border-bottom-color: var(--bevel-light);
+      border-right-color: var(--bevel-light);
+      background: #cbd5e1;
+      transform: translate(1px, 1px);
+    }
+
+    .tool-icon {
+      font-size: 14px;
+    }
+
+    .canvas-viewport {
+      position: relative;
+      background: #cbd5e1;
+      border: 3px solid var(--border-dark);
+      box-shadow: inset 2px 2px 0px var(--bevel-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: auto;
+      min-height: 480px;
+      max-height: 70vh;
+    }
+
+    #canvasWrapper {
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    canvas {
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+      image-rendering: pixelated;
+    }
+
+    .sidebar-layers {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-dark);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .panel-header {
+      font-weight: bold;
+      border-bottom: 2px solid var(--border-dark);
+      padding-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .layer-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 140px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 4px;
+      border: 1px solid #cbd5e1;
+      padding: 4px;
+      background: #f8fafc;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px;
+      border: 1px solid #94a3b8;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .layer-item.active {
+      border: 2px solid #ec4899;
+      background: #fdf2f8;
+      font-weight: bold;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    /* Recent Colors Palette Grid */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 3px;
+      padding: 4px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      min-height: 48px;
+    }
+
+    .palette-swatch {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #000;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .palette-swatch:hover {
+      transform: scale(1.15);
+      z-index: 2;
+    }
+
+    .bottom-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      background: var(--window-bg);
+      border-top: 2px solid var(--border-dark);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn-retro {
+      background: #ffffff;
+      border: 2px solid var(--border-dark);
+      box-shadow: 2px 2px 0px var(--border-dark);
+      padding: 5px 8px;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .btn-retro:hover {
+      background: #fdf2f8;
+    }
+
+    .btn-retro:active {
+      box-shadow: none;
+      transform: translate(2px, 2px);
+    }
+
+    input[type="color"] {
+      border: 2px solid var(--border-dark);
+      width: 28px;
+      height: 24px;
+      cursor: pointer;
+      padding: 0;
+      background: none;
+    }
+
+    input[type="range"] {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-window">
+    <div class="window-titlebar">
+      <span>🎨 PAINTS AND BRUSHES CANVAS</span>
+      <div class="titlebar-dots">
+        <div class="titlebar-dot"></div>
+        <div class="titlebar-dot"></div>
+      </div>
+    </div>
+
+    <div class="app-workspace">
+      <!-- Brush Selection Sidebar -->
+      <div class="sidebar-tools" id="toolsList">
+        <span class="tool-group-label">Broken Style</span>
+        <button class="tool-btn active" data-tool="pen" title="Broken Nib Ink">
+          <span class="tool-icon">✒️</span><span>B-PEN</span>
+        </button>
+        <button class="tool-btn" data-tool="pencil" title="Grainy Graphite">
+          <span class="tool-icon">✏️</span><span>B-PENCIL</span>
+        </button>
+        <button class="tool-btn" data-tool="marker" title="Rough Felt-Tip">
+          <span class="tool-icon">🖍️</span><span>B-MARKER</span>
+        </button>
+        <button class="tool-btn" data-tool="brush" title="Bristle Drag Brush">
+          <span class="tool-icon">🖌️</span><span>B-BRUSH</span>
+        </button>
+        <button class="tool-btn" data-tool="spray" title="Dithered Spray Gun">
+          <span class="tool-icon">💨</span><span>B-SPRAY</span>
+        </button>
+        <button class="tool-btn" data-tool="crayon_pink" title="Pink Broken Wax">
+          <span class="tool-icon">🌸</span><span>C-PINK</span>
+        </button>
+        <button class="tool-btn" data-tool="crayon_cyan" title="Cyan Broken Wax">
+          <span class="tool-icon">💎</span><span>C-CYAN</span>
+        </button>
+        <button class="tool-btn" data-tool="crayon_yellow" title="Yellow Broken Wax">
+          <span class="tool-icon">⭐</span><span>C-YLLW</span>
+        </button>
+
+        <span class="tool-group-label">Normal Style</span>
+        <button class="tool-btn" data-tool="smooth_pen" title="Smooth Solid Pen">
+          <span class="tool-icon">🖋️</span><span>S-PEN</span>
+        </button>
+        <button class="tool-btn" data-tool="smooth_brush" title="Clean Round Brush">
+          <span class="tool-icon">🎨</span><span>S-BRUSH</span>
+        </button>
+        <button class="tool-btn" data-tool="highlighter" title="Smooth Highlighter">
+          <span class="tool-icon">💡</span><span>H-LIGHT</span>
+        </button>
+        <button class="tool-btn" data-tool="soft_spray" title="Soft Airbrush">
+          <span class="tool-icon">☁️</span><span>AIRBRUSH</span>
+        </button>
+
+        <span class="tool-group-label">Utility</span>
+        <button class="tool-btn" data-tool="eraser" title="Eraser">
+          <span class="tool-icon">🧽</span><span>ERASER</span>
+        </button>
+      </div>
+
+      <!-- Canvas Viewport -->
+      <div class="canvas-viewport">
+        <div id="canvasWrapper">
+          <canvas id="paintCanvas" width="640" height="460"></canvas>
+        </div>
+      </div>
+
+      <!-- Layers & Colors Panel -->
+      <div class="sidebar-layers">
+        <div class="panel-header">
+          <span>RECENT (LAST 20)</span>
+        </div>
+        <div class="palette-grid" id="paletteGrid"></div>
+
+        <div class="panel-header">
+          <span>LAYERS</span>
+          <div>
+            <button class="btn-retro" id="addLayerBtn" style="padding: 2px 5px;">+ New</button>
+            <button class="btn-retro" id="deleteLayerBtn" style="padding: 2px 5px;">- Del</button>
+          </div>
+        </div>
+
+        <div class="layer-list" id="layerList"></div>
+
+        <div class="control-group">
+          <div class="control-row">
+            <span>Opacity:</span>
+            <input type="range" id="layerOpacity" min="0" max="1" step="0.05" value="1" style="width:90px;" />
+          </div>
+        </div>
+
+        <div class="panel-header" style="margin-top:2px;">
+          <span>CANVAS SETUP</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-row">
+            <span>BG Color:</span>
+            <input type="color" id="bgColorPicker" value="#ffffff" />
+          </div>
+          <div class="control-row">
+            <span>Import BG:</span>
+            <input type="file" id="imageLoader" accept="image/*" style="width: 130px; font-size: 9px;" />
+          </div>
+        </div>
+
+        <div class="panel-header" style="margin-top:2px;">
+          <span>WIGGLE / JITTER</span>
+        </div>
+        <div class="control-group">
+          <div class="control-row">
+            <span>Roughness:</span>
+            <input type="range" id="wiggleAmp" min="1" max="15" step="1" value="5" style="width:90px;" />
+          </div>
+          <div class="control-row">
+            <span>Speed:</span>
+            <input type="range" id="wiggleSpeed" min="4" max="24" step="1" value="8" style="width:90px;" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <div class="bottom-toolbar">
+      <div class="toolbar-group">
+        <button class="btn-retro" id="exportGifBtn">🎞️ EXPORT GIF</button>
+        <button class="btn-retro" id="exportPicBtn">🖼️ EXPORT PIC</button>
+        <button class="btn-retro" id="cropBtn">✂️ CROP</button>
+        <button class="btn-retro" id="saveProjectBtn">💾 SAVE PROJECT</button>
+        <input type="file" id="loadProjectInput" accept=".json" style="display:none" />
+        <button class="btn-retro" id="loadProjectBtn">📂 OPEN</button>
+        <button class="btn-retro" id="offlineSaveBtn">🌐 OFFLINE HTML</button>
+      </div>
+
+      <div class="toolbar-group">
+        <label style="font-size: 11px; display: flex; align-items: center; gap: 4px;">
+          Color:
+          <input type="color" id="primaryColor" value="#000000" />
+        </label>
+        <label style="font-size: 11px; display: flex; align-items: center; gap: 4px;">
+          Size:
+          <input type="range" id="brushSize" min="2" max="50" value="8" style="width: 70px;" />
+        </label>
+        <button class="btn-retro" id="undoBtn">↩️ OOPS</button>
+        <button class="btn-retro" id="redoBtn">↪️ REDO</button>
+        <button class="btn-retro" id="clearBtn" style="color: #be123c;">💥 OBLITERATE</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let audioCtx = null;
+    function playBrushTone(tool, speed = 1) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+
+        let baseFreq = 400;
+        let type = "sawtooth";
+        let duration = 0.04;
+
+        switch (tool) {
+          case "pen": baseFreq = 700; type = "sine"; break;
+          case "pencil": baseFreq = 260 + Math.random() * 200; type = "sawtooth"; break;
+          case "marker": baseFreq = 160; type = "square"; break;
+          case "brush": baseFreq = 200; type = "triangle"; break;
+          case "spray": baseFreq = 300 + Math.random() * 500; type = "sawtooth"; duration = 0.02; break;
+          case "crayon_pink": baseFreq = 450; break;
+          case "crayon_cyan": baseFreq = 550; break;
+          case "crayon_yellow": baseFreq = 650; break;
+          case "smooth_pen": baseFreq = 880; type = "sine"; duration = 0.03; break;
+          case "smooth_brush": baseFreq = 320; type = "sine"; duration = 0.05; break;
+          case "highlighter": baseFreq = 220; type = "triangle"; duration = 0.06; break;
+          case "soft_spray": baseFreq = 150 + Math.random() * 200; type = "sine"; duration = 0.03; break;
+          case "eraser": baseFreq = 110; type = "sine"; break;
+        }
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(baseFreq * speed, now);
+        gain.gain.setValueAtTime(0.02, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch(e) {}
+    }
+
+    const canvas = document.getElementById("paintCanvas");
+    const ctx = canvas.getContext("2d");
+    const TOTAL_FRAMES = 4;
+    let currentFrame = 0;
+    let lastFrameTime = 0;
+
+    let canvasBgColor = "#ffffff";
+    let bgImage = null;
+
+    let layers = [
+      { id: 1, name: "Layer 1", visible: true, opacity: 1.0, strokes: [] }
+    ];
+    let activeLayerIndex = 0;
+    let redoStack = [];
+
+    let currentTool = "pen";
+    let isDrawing = false;
+    let currentStroke = null;
+
+    // Recent 20 Colors Palette System
+    let recentColors = [
+      "#000000", "#ffffff", "#f472b6", "#06b6d4", "#eab308",
+      "#ef4444", "#10b981", "#3b82f6", "#8b5cf6", "#f97316"
+    ];
+
+    const paletteGrid = document.getElementById("paletteGrid");
+    const primaryColorPicker = document.getElementById("primaryColor");
+    const toolBtns = document.querySelectorAll(".tool-btn");
+    const brushSizeSlider = document.getElementById("brushSize");
+    const wiggleAmpSlider = document.getElementById("wiggleAmp");
+    const wiggleSpeedSlider = document.getElementById("wiggleSpeed");
+    const bgColorPicker = document.getElementById("bgColorPicker");
+    const layerListEl = document.getElementById("layerList");
+    const layerOpacitySlider = document.getElementById("layerOpacity");
+    const imageLoader = document.getElementById("imageLoader");
+
+    function renderRecentColors() {
+      paletteGrid.innerHTML = "";
+      recentColors.forEach(color => {
+        const swatch = document.createElement("div");
+        swatch.className = "palette-swatch";
+        swatch.style.backgroundColor = color;
+        swatch.title = color;
+        swatch.addEventListener("click", () => {
+          primaryColorPicker.value = color;
+          pushRecentColor(color);
+        });
+        paletteGrid.appendChild(swatch);
+      });
+    }
+
+    function pushRecentColor(color) {
+      if (!color) return;
+      color = color.toLowerCase();
+      recentColors = [color, ...recentColors.filter(c => c.toLowerCase() !== color)].slice(0, 20);
+      renderRecentColors();
+    }
+
+    primaryColorPicker.addEventListener("change", (e) => {
+      pushRecentColor(e.target.value);
+    });
+
+    toolBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        toolBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentTool = btn.getAttribute("data-tool");
+      });
+    });
+
+    function renderLayerList() {
+      layerListEl.innerHTML = "";
+      layers.forEach((layer, index) => {
+        const item = document.createElement("div");
+        item.className = `layer-item ${index === activeLayerIndex ? 'active' : ''}`;
+        
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = layer.name;
+        titleSpan.onclick = () => {
+          activeLayerIndex = index;
+          layerOpacitySlider.value = layers[activeLayerIndex].opacity;
+          renderLayerList();
+        };
+
+        const checkSpan = document.createElement("input");
+        checkSpan.type = "checkbox";
+        checkSpan.checked = layer.visible;
+        checkSpan.onchange = (e) => {
+          layer.visible = e.target.checked;
+        };
+
+        item.appendChild(checkSpan);
+        item.appendChild(titleSpan);
+        layerListEl.appendChild(item);
+      });
+    }
+
+    document.getElementById("addLayerBtn").addEventListener("click", () => {
+      layers.push({
+        id: Date.now(),
+        name: `Layer ${layers.length + 1}`,
+        visible: true,
+        opacity: 1.0,
+        strokes: []
+      });
+      activeLayerIndex = layers.length - 1;
+      renderLayerList();
+    });
+
+    document.getElementById("deleteLayerBtn").addEventListener("click", () => {
+      if (layers.length > 1) {
+        layers.splice(activeLayerIndex, 1);
+        activeLayerIndex = Math.max(0, activeLayerIndex - 1);
+        renderLayerList();
+      }
+    });
+
+    layerOpacitySlider.addEventListener("input", (e) => {
+      layers[activeLayerIndex].opacity = parseFloat(e.target.value);
+    });
+
+    bgColorPicker.addEventListener("input", (e) => {
+      canvasBgColor = e.target.value;
+    });
+
+    imageLoader.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => { bgImage = img; };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function getPointerInfo(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      let pressure = e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5;
+
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY,
+        pressure: pressure
+      };
+    }
+
+    function startStroke(e) {
+      const ptr = getPointerInfo(e);
+      isDrawing = true;
+      redoStack = [];
+
+      let strokeColor = primaryColorPicker.value;
+      if (currentTool === "crayon_pink") strokeColor = "#f472b6";
+      if (currentTool === "crayon_cyan") strokeColor = "#06b6d4";
+      if (currentTool === "crayon_yellow") strokeColor = "#eab308";
+      if (currentTool === "eraser") strokeColor = canvasBgColor;
+
+      pushRecentColor(strokeColor);
+
+      currentStroke = {
+        tool: currentTool,
+        color: strokeColor,
+        size: parseFloat(brushSizeSlider.value),
+        points: []
+      };
+
+      addPoint(ptr.x, ptr.y, ptr.pressure);
+      layers[activeLayerIndex].strokes.push(currentStroke);
+      playBrushTone(currentTool, 1.0);
+    }
+
+    function addPoint(x, y, pressure) {
+      const amp = parseFloat(wiggleAmpSlider.value);
+      const frames = [];
+
+      for (let f = 0; f < TOTAL_FRAMES; f++) {
+        const particles = [];
+        const count = 12;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            dx: (Math.random() - 0.5) * 2,
+            dy: (Math.random() - 0.5) * 2,
+            skip: Math.random() > 0.65
+          });
+        }
+
+        frames.push({
+          jitterX: (Math.random() - 0.5) * amp * 2,
+          jitterY: (Math.random() - 0.5) * amp * 2,
+          particles: particles
+        });
+      }
+      currentStroke.points.push({ x, y, pressure, frames });
+    }
+
+    function moveStroke(e) {
+      if (!isDrawing) return;
+      const ptr = getPointerInfo(e);
+      const pts = currentStroke.points;
+      const last = pts[pts.length - 1];
+      const dist = Math.hypot(ptr.x - last.x, ptr.y - last.y);
+
+      if (dist >= 2.5) {
+        addPoint(ptr.x, ptr.y, ptr.pressure);
+        if (pts.length % 2 === 0) {
+          playBrushTone(currentTool, Math.min(2.0, Math.max(0.5, dist / 8)));
+        }
+      }
+    }
+
+    function endStroke() {
+      isDrawing = false;
+      currentStroke = null;
+    }
+
+    canvas.addEventListener("pointerdown", startStroke);
+    window.addEventListener("pointermove", moveStroke);
+    window.addEventListener("pointerup", endStroke);
+
+    document.getElementById("undoBtn").addEventListener("click", () => {
+      const activeStrokes = layers[activeLayerIndex].strokes;
+      if (activeStrokes.length > 0) {
+        redoStack.push(activeStrokes.pop());
+      }
+    });
+
+    document.getElementById("redoBtn").addEventListener("click", () => {
+      if (redoStack.length > 0) {
+        layers[activeLayerIndex].strokes.push(redoStack.pop());
+      }
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      layers.forEach(l => l.strokes = []);
+      bgImage = null;
+      redoStack = [];
+    });
+
+    document.getElementById("cropBtn").addEventListener("click", () => {
+      const newWidth = prompt("Enter new canvas width:", canvas.width);
+      const newHeight = prompt("Enter new canvas height:", canvas.height);
+      if (newWidth && newHeight) {
+        canvas.width = parseInt(newWidth);
+        canvas.height = parseInt(newHeight);
+      }
+    });
+
+    // Complete Rendering Engine (Textured + Normal Brushes)
+    function drawStroke(context, stroke, frameIndex) {
+      const pts = stroke.points;
+      if (pts.length === 0) return;
+
+      context.save();
+      context.fillStyle = stroke.color;
+      context.strokeStyle = stroke.color;
+      const rad = stroke.size / 2;
+
+      switch (stroke.tool) {
+        // --- Normal / Smooth Brushes ---
+        case "smooth_pen": {
+          context.lineWidth = stroke.size;
+          context.lineCap = "round";
+          context.lineJoin = "round";
+          context.beginPath();
+          pts.forEach((pt, i) => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            if (i === 0) context.moveTo(px, py);
+            else context.lineTo(px, py);
+          });
+          context.stroke();
+          break;
+        }
+
+        case "smooth_brush": {
+          context.lineCap = "round";
+          context.lineJoin = "round";
+          for (let i = 1; i < pts.length; i++) {
+            const p1 = pts[i - 1];
+            const p2 = pts[i];
+            const f1 = p1.frames[frameIndex % TOTAL_FRAMES];
+            const f2 = p2.frames[frameIndex % TOTAL_FRAMES];
+            context.lineWidth = stroke.size * ((p2.pressure || 0.5) * 1.8);
+            context.beginPath();
+            context.moveTo(p1.x + f1.jitterX, p1.y + f1.jitterY);
+            context.lineTo(p2.x + f2.jitterX, p2.y + f2.jitterY);
+            context.stroke();
+          }
+          break;
+        }
+
+        case "highlighter": {
+          context.globalAlpha = (context.globalAlpha || 1.0) * 0.4;
+          context.lineWidth = stroke.size * 2.2;
+          context.lineCap = "square";
+          context.lineJoin = "bevel";
+          context.beginPath();
+          pts.forEach((pt, i) => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            if (i === 0) context.moveTo(px, py);
+            else context.lineTo(px, py);
+          });
+          context.stroke();
+          break;
+        }
+
+        case "soft_spray": {
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            for (let s = 0; s < 10; s++) {
+              const angle = Math.random() * Math.PI * 2;
+              const r = Math.random() * stroke.size * 1.5;
+              const sx = (pt.x + fData.jitterX) + Math.cos(angle) * r;
+              const sy = (pt.y + fData.jitterY) + Math.sin(angle) * r;
+              context.fillRect(sx, sy, 1, 1);
+            }
+          });
+          break;
+        }
+
+        // --- Broken / Textured Brushes ---
+        case "pen": {
+          context.lineCap = "butt";
+          for (let i = 1; i < pts.length; i++) {
+            const prev = pts[i - 1];
+            const cur = pts[i];
+            const prevF = prev.frames[frameIndex % TOTAL_FRAMES];
+            const curF = cur.frames[frameIndex % TOTAL_FRAMES];
+            context.lineWidth = Math.max(1, stroke.size * 0.7);
+            if ((i + frameIndex) % 4 !== 0) {
+              context.beginPath();
+              context.moveTo(prev.x + prevF.jitterX, prev.y + prevF.jitterY);
+              context.lineTo(cur.x + curF.jitterX, cur.y + curF.jitterY);
+              context.stroke();
+            }
+          }
+          break;
+        }
+
+        case "pencil": {
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            fData.particles.forEach(p => {
+              if (!p.skip) {
+                const gx = px + p.dx * (rad * 0.8);
+                const gy = py + p.dy * (rad * 0.8);
+                context.fillRect(Math.floor(gx), Math.floor(gy), 1.5, 1.5);
+              }
+            });
+          });
+          break;
+        }
+
+        case "marker": {
+          context.globalAlpha = (context.globalAlpha || 1.0) * 0.45;
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            fData.particles.slice(0, 8).forEach(p => {
+              const mx = px + p.dx * (rad * 0.6);
+              const my = py + p.dy * (rad * 0.6);
+              context.fillRect(Math.floor(mx - rad/2), Math.floor(my - rad/2), stroke.size, stroke.size);
+            });
+          });
+          break;
+        }
+
+        case "brush": {
+          pts.forEach((pt, i) => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            [-0.7, -0.3, 0, 0.3, 0.7].forEach((offsetRatio, bIdx) => {
+              if ((bIdx + i + frameIndex) % 5 !== 0) {
+                const bx = px + (offsetRatio * rad);
+                const by = py + (offsetRatio * rad);
+                context.fillRect(Math.floor(bx), Math.floor(by), 2, 2);
+              }
+            });
+          });
+          break;
+        }
+
+        case "spray": {
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            fData.particles.forEach(p => {
+              const sx = px + p.dx * (rad * 2.2);
+              const sy = py + p.dy * (rad * 2.2);
+              context.fillRect(Math.floor(sx), Math.floor(sy), 1.5, 1.5);
+            });
+          });
+          break;
+        }
+
+        case "crayon_pink":
+        case "crayon_cyan":
+        case "crayon_yellow": {
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            fData.particles.forEach((p, pIdx) => {
+              if (pIdx % 2 === 0) {
+                const cx = px + p.dx * rad;
+                const cy = py + p.dy * rad;
+                context.fillRect(Math.floor(cx), Math.floor(cy), 2, 2);
+              }
+            });
+          });
+          break;
+        }
+
+        case "eraser": {
+          context.fillStyle = canvasBgColor;
+          pts.forEach(pt => {
+            const fData = pt.frames[frameIndex % TOTAL_FRAMES];
+            const px = pt.x + fData.jitterX;
+            const py = pt.y + fData.jitterY;
+            context.beginPath();
+            context.arc(px, py, rad * 1.5, 0, Math.PI * 2);
+            context.fill();
+          });
+          break;
+        }
+      }
+      context.restore();
+    }
+
+    function renderFrame(context, targetFrame, targetWidth, targetHeight) {
+      context.fillStyle = canvasBgColor;
+      context.fillRect(0, 0, targetWidth, targetHeight);
+
+      if (bgImage) {
+        context.drawImage(bgImage, 0, 0, targetWidth, targetHeight);
+      }
+
+      layers.forEach(layer => {
+        if (!layer.visible) return;
+        context.save();
+        context.globalAlpha = layer.opacity;
+        layer.strokes.forEach(stroke => {
+          drawStroke(context, stroke, targetFrame);
+        });
+        context.restore();
+      });
+    }
+
+    function animate(timestamp) {
+      const fps = parseInt(wiggleSpeedSlider.value);
+      if (timestamp - lastFrameTime > 1000 / fps) {
+        currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+        lastFrameTime = timestamp;
+      }
+
+      renderFrame(ctx, currentFrame, canvas.width, canvas.height);
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+    document.getElementById("exportPicBtn").addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "paints-and-brushes.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    function encodeGIF(framesData, width, height, delayMs) {
+      const buffer = [];
+      function writeByte(b) { buffer.push(b & 0xFF); }
+      function writeWord(w) { writeByte(w); writeByte(w >> 8); }
+      function writeString(s) { for (let i = 0; i < s.length; i++) writeByte(s.charCodeAt(i)); }
+
+      writeString("GIF89a");
+      writeWord(width);
+      writeWord(height);
+      writeByte(0x70);
+      writeByte(0);
+      writeByte(0);
+
+      writeByte(0x21); writeByte(0xFF); writeByte(11);
+      writeString("NETSCAPE2.0");
+      writeByte(3); writeByte(1); writeWord(0); writeByte(0);
+
+      framesData.forEach(imgData => {
+        const colorTable = [];
+        const colorIndices = [];
+
+        for (let i = 0; i < imgData.data.length; i += 4) {
+          const r = imgData.data[i] & 0xC0;
+          const g = imgData.data[i+1] & 0xC0;
+          const b = imgData.data[i+2] & 0xC0;
+          const key = (r << 16) | (g << 8) | b;
+          
+          let idx = colorTable.indexOf(key);
+          if (idx === -1) {
+            if (colorTable.length < 256) {
+              colorTable.push(key);
+              idx = colorTable.length - 1;
+            } else {
+              idx = 0;
+            }
+          }
+          colorIndices.push(idx);
+        }
+
+        while (colorTable.length < 256) colorTable.push(0);
+
+        writeByte(0x21); writeByte(0xF9); writeByte(4);
+        writeByte(0);
+        writeWord(Math.round(delayMs / 10));
+        writeByte(0); writeByte(0);
+
+        writeByte(0x2C);
+        writeWord(0); writeWord(0);
+        writeWord(width); writeWord(height);
+        writeByte(0x87);
+
+        colorTable.forEach(c => {
+          writeByte((c >> 16) & 0xFF);
+          writeByte((c >> 8) & 0xFF);
+          writeByte(c & 0xFF);
+        });
+
+        writeByte(8);
+        const blockSize = 126;
+        for (let i = 0; i < colorIndices.length; i += blockSize) {
+          const chunk = colorIndices.slice(i, i + blockSize);
+          writeByte(chunk.length + 1);
+          writeByte(0x00);
+          chunk.forEach(v => writeByte(v));
+        }
+        writeByte(1); writeByte(0x01);
+        writeByte(0);
+      });
+
+      writeByte(0x3B);
+      return new Uint8Array(buffer);
+    }
+
+    document.getElementById("exportGifBtn").addEventListener("click", () => {
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = canvas.width;
+      offCanvas.height = canvas.height;
+      const offCtx = offCanvas.getContext("2d");
+
+      const frames = [];
+      for (let f = 0; f < TOTAL_FRAMES; f++) {
+        renderFrame(offCtx, f, canvas.width, canvas.height);
+        frames.push(offCtx.getImageData(0, 0, canvas.width, canvas.height));
+      }
+
+      const gifBytes = encodeGIF(frames, canvas.width, canvas.height, 1000 / parseInt(wiggleSpeedSlider.value));
+      const blob = new Blob([gifBytes], { type: "image/gif" });
+      const link = document.createElement("a");
+      link.download = "paints-and-brushes.gif";
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    });
+
+    document.getElementById("saveProjectBtn").addEventListener("click", () => {
+      const projectData = {
+        bgColor: canvasBgColor,
+        width: canvas.width,
+        height: canvas.height,
+        layers: layers,
+        recentColors: recentColors
+      };
+      const blob = new Blob([JSON.stringify(projectData)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.download = "wiggly-project.json";
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    });
+
+    document.getElementById("loadProjectBtn").addEventListener("click", () => {
+      document.getElementById("loadProjectInput").click();
+    });
+
+    document.getElementById("loadProjectInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = JSON.parse(event.target.result);
+        canvasBgColor = data.bgColor || "#ffffff";
+        canvas.width = data.width || 640;
+        canvas.height = data.height || 460;
+        layers = data.layers || [];
+        recentColors = data.recentColors || recentColors;
+        activeLayerIndex = 0;
+        renderLayerList();
+        renderRecentColors();
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("offlineSaveBtn").addEventListener("click", () => {
+      const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const link = document.createElement("a");
+      link.download = "paints-and-brushes-canvas.html";
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    });
+
+    renderLayerList();
+    renderRecentColors();
+  </script>
+</body>
+</html>
